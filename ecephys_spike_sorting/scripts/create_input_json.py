@@ -1,4 +1,3 @@
-
 import os, io, json, sys
 
 if sys.platform == 'linux':
@@ -48,7 +47,7 @@ def createInputJson(output_file,
                     tPrime_3A = False,
                     toStream_path_3A = ' ',
                     fromStream_list_3A = list(),
-                    ks_ver = '2.0',
+                    ks_ver = '4',
                     ks_helper_noise_threshold = 20,
                     ks_doFilter = 0,
                     ks_remDup = 0,                   
@@ -64,44 +63,44 @@ def createInputJson(output_file,
                     ks_templateRadius_um = 163,
                     ks_nblocks = 5,
                     ks_CAR = 0,
-                    ks_output_tag = 'ks2',
+                    ks_output_tag = 'ks4',
                     c_Waves_snr_um = 160,
                     wm_spread_thresh = 0.12,
                     wm_site_range = 16,
                     qm_isi_thresh = 1.5/1000,
-                    include_pc_metrics = True,
+                    include_pcs = True,
                     ks_nNeighbors_sites_fix = 0,
-                    ks4_duplicate_spike_ms = 0.25,
+                    ks4_duplicate_spike_bins = 15,
                     ks4_min_template_size_um = 10
                     ):
 
     # hard coded paths to code on your computer and system
-    ecephys_directory = r'C:\Users\colonellj\Documents\ecephys_spike_sorting\ecephys_spike_sorting'
+    ecephys_directory = r'/home/ngovin5/Documents/airForce-nathan/ecephys_spike_sorting_govindarajan/ecephys_spike_sorting'
     
     # location of kilosort respositories for MATLAB versions.
     # determins what will be run by the kilosort_helper module
     # These ONLY need to be defined if you are going to call them.
     if ks_ver == '2.0':
-        kilosort_repository = r'C:\Users\colonellj\Documents\KS20_for_preprocessed_data'
-    elif ks_ver == '2.5':      
-        kilosort_repository = r'C:\Users\colonellj\Documents\KS2.5.2_seed'
+        kilosort_repository = r'C:\Users\labadmin\Documents\KS20_for_preprocessed_data'
+    elif ks_ver == '2.5':      # must equal '3.0', '2.5' or '2.0'
+        kilosort_repository = r'C:\Users\labadmin\Documents\KS20_for_preprocessed_data'
     elif ks_ver == '3.0':
         kilosort_repository = r'C:\Users\labadmin\Documents\KS20_for_preprocessed_data'
     else:
         kilosort_repository = r''  # default path for when we aren't using any of these
             
-    npy_matlab_repository = r'C:\Users\colonellj\Documents\npy-matlab-master'
-    catGTPath = r'C:\Users\colonellj\Documents\CatGTWinApp\CatGT-win'
-    tPrime_path=r'C:\Users\colonellj\Documents\TPrime-win'
-    cWaves_path=r'C:\Users\colonellj\Documents\C_Waves-median\C_Waves-win'
+    npy_matlab_repository = r'/home/ngovin5/Desktop/npy-matlab'
+    catGTPath = r'/home/ngovin5/Desktop/CatGT-linux'
+    tPrime_path=r'/home/ngovin5/Desktop/TPrime-linux'
+    cWaves_path=r'/home/ngovin5/Desktop/C_Waves-linux'
          
     # for config files and kilosort working space
-    kilosort_output_tmp = r'D:\kilosort_datatemp' 
+    kilosort_output_tmp = r'/home/ngovin5/Desktop/kilosort_datatemp' 
     
     
     # KS 3.0 and 4 do not calculation pc features for phy
-    if ks_ver in  ['3.0']:
-        include_pc_metrics = False  # set to false for ks_ver = '3.0'
+    if ks_ver in  ['3.0', '4']:
+        include_pcs = False  # set to false for ks_ver = '3.0'
     
     # derived directory names
     
@@ -135,7 +134,7 @@ def createInputJson(output_file,
         # 
         if input_meta_path is not None:
             probe_type, sample_rate, num_channels, reference_channels, \
-            uVPerBit, vpitch, hpitch, nColumn, nAP, nSY, useGeom\
+            uVPerBit, vpitch, hpitch, nColumn, useGeom \
             = SpikeGLX_utils.EphysParams(input_meta_path) 
             
             print('SpikeGLX params read from meta')
@@ -151,7 +150,16 @@ def createInputJson(output_file,
     else:
        print('Only SpikeGLX data is supported at this time.')
        sys.exit()
-         
+        
+
+            
+
+    # geometry params by probe type. expand the dictionaries to add types
+    # vertical probe pitch vs probe type
+#    vpitch = {'3A': 20, 'NP1': 20, 'NP21': 15, 'NP24': 15, 'NP1100': 6,'NP1110' : 6,'NP1300':20}  
+#    hpitch = {'3A': 32, 'NP1': 32, 'NP21': 32, 'NP24': 32, 'NP1100': 6,'NP1110' : 6,'NP1300':48} 
+#    nColumn = {'3A': 2, 'NP1': 2, 'NP21': 2, 'NP24': 2, 'NP1100': 8,'NP1110': 8,'NP1300':2} 
+    
     
     # CatGT needs the inner and outer redii for local common average referencing
     # specified in sites
@@ -332,30 +340,26 @@ def createInputJson(output_file,
 
         },
                 
-        'ks4_helper_params' : {
+        "ks4_helper_params" : {
             'do_CAR' :  True if ks_CAR == 1 else False,
-            'save_extra_vars' : True,    # to save Wall and pc features
-            'doFilter' : ks_doFilter,        # not yet used
+            'Th_universal' : ks4_Th_universal,
+            'Th_learned' : ks4_Th_learned,
+            'duplicate_spike_bins' : ks4_duplicate_spike_bins,
+            'nblocks' : ks_nblocks,
+            'sig_interp' : 20.0,
+            'whitening_range' : ks_whiteningRange,
+            'min_template_size' : ks4_min_template_size_um,
+            'template_sizes' : 5,
+            'template_from_data' : True,
+            'tmin' : 0,
+            'tmax' : np.inf,
+            'neareast_chans' : 10,
+            'nearest_templates' : 100,
+            'ccg_threshold' : 0.25,
+            'acg_threshold' : 0.20,
             'ks_make_copy': ks_make_copy,
-            'save_preprocessed_copy' : bool(ks_copy_fproc),
-            # ks4_params are limited to members of the KS4 'settings' list
-            'ks4_params' : {           
-                    'Th_universal' : ks4_Th_universal,
-                    'Th_learned' : ks4_Th_learned,  
-                    'duplicate_spike_ms' : ks4_duplicate_spike_ms,
-                    'nblocks' : ks_nblocks,
-                    'sig_interp' : 20.0,
-                    'whitening_range' : ks_whiteningRange,
-                    'min_template_size' : ks4_min_template_size_um,
-                    'template_sizes' : 5,
-                    'templates_from_data' : True,
-                    'nearest_chans' : 10,
-                    'nearest_templates' : 100,
-                    'ccg_threshold' : 0.25,
-                    'acg_threshold' : 0.20,
-                    'template_seed' : ks_LTseed,
-                    'cluster_seed' : ks_CSBseed,
-            }
+            'doFilter' : ks_doFilter,       # not yet used
+            'templateSeed' : ks_LTseed      # not yet used
     },
         
                       
@@ -366,7 +370,8 @@ def createInputJson(output_file,
             "within_unit_overlap_window" : 0.00017,
             "between_unit_overlap_window" : 0.00041,
             "between_unit_dist_um" : 66,
-            "deletion_mode" : 'lowAmpCluster'
+            "deletion_mode" : 'lowAmpCluster',
+            "include_pcs" : include_pcs
         },
 
         "mean_waveform_params" : {     
@@ -380,15 +385,14 @@ def createInputJson(output_file,
             "cWaves_path" : cWaves_path,
             "use_C_Waves" : True,
             "snr_radius" : c_waves_radius_sites,
-            "snr_radius_um" : c_Waves_snr_um,
-            "nAP" : nAP
+            "snr_radius_um" : c_Waves_snr_um
         },
             
 
         "noise_waveform_params" : {
-            "classifier_path" : os.path.join(modules_directory, 'noise_templates', 'rf_classifier.pkl'),            
-            "use_random_forest" : noise_template_use_rf,
-            "peak_channel_range_um" : 150
+            "classifier_path" : os.path.join(modules_directory, 'noise_templates', 'rf_classifier.pkl'),
+            "multiprocessing_worker_count" : 10,
+            "use_random_forest" : noise_template_use_rf
         },
 
         "quality_metrics_params" : {
@@ -402,8 +406,7 @@ def createInputJson(output_file,
             'n_silhouette' : 10000,
             "drift_metrics_interval_s" : 51,
             "drift_metrics_min_spikes_per_interval" : 10,
-            "include_pc_metrics" : include_pc_metrics,
-            "include_ibl" : True
+            "include_pcs" : include_pcs
         },
         
         "catGT_helper_params" : {
